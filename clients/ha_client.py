@@ -22,6 +22,11 @@ class HAClient:
         }
         self._timeout = timeout
 
+    @classmethod
+    def from_config(cls, cfg) -> 'HAClient':
+        """从配置命名空间创建客户端。"""
+        return cls(url=cfg.url, token=cfg.token)
+
     def _get(self, path: str, params: dict | None = None) -> Any:
         """发起 GET 请求，统一错误处理。"""
         resp = requests.get(

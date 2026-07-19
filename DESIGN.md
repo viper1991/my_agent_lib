@@ -216,7 +216,7 @@ Orchestrator 在特定场景向 LLM 注入提示消息，消息内容来自 `Pro
 
 ### 6.1 InteractionLog（日志）
 
-记录每轮 LLM 交互的完整输入/输出到 JSONL 文件，同时向 console 输出结构化摘要。
+记录每轮 LLM 交互的完整输入/输出到 JSONL 文件（含 tool_defs 工具定义摘要），同时向 console 输出结构化摘要。
 
 | 构造参数 | 类型 | 默认值 | 说明 |
 |----------|------|--------|------|
@@ -243,8 +243,8 @@ Orchestrator 在特定场景向 LLM 注入提示消息，消息内容来自 `Pro
 
 ### 6.4 API 客户端
 
-- **HAClient**: Home Assistant REST API（`/api/states/`, `/api/history/period`, `/api/logbook`）
-- **UniFiClient**: UniFi Controller REST API（devices, clients, rogue APs, DPI, alarms, statistics）
+- **HAClient**: Home Assistant REST API（`/api/states/`, `/api/history/period`, `/api/logbook`）。`from_config(cfg)` 从配置命名空间创建。
+- **UniFiClient**: UniFi Controller REST API（devices, clients, rogue APs, DPI, alarms, statistics）。`from_config(cfg)` 从配置命名空间创建。
 
 ---
 

@@ -82,8 +82,8 @@ class Orchestrator:
         duration = int((time.monotonic() - t0) * 1000)
 
         if self._interaction_log:
-            self._interaction_log.record(round_num, interaction_type, messages, response, duration)
-        InteractionLog.log_console(round_num, interaction_type, messages, response, duration)
+            self._interaction_log.record(round_num, interaction_type, messages, response, duration, tools)
+        InteractionLog.log_console(round_num, interaction_type, messages, response, duration, tools)
 
         return response
 
@@ -201,7 +201,7 @@ class Orchestrator:
                 })
 
         # ── 6. 循环结束但没有终结工具调用 — 再试一次 ──
-        logger.warning('Agent loop exhausted without terminal tool, retrying')
+        logger.info('Agent round limit reached, sending fallback prompt')
         terminal_name = self._terminal_tool_name
         terminal_tool_obj = self._tools.get(terminal_name) if terminal_name else None
         final_tools = [terminal_tool_obj.to_openai_tool()] if terminal_tool_obj else []
@@ -217,6 +217,7 @@ class Orchestrator:
         if response.tool_calls and terminal_name:
             tc = response.tool_calls[0]
             if tc['function']['name'] == terminal_name:
+                logger.info('Agent completed with %s via fallback', terminal_name)
                 args = tc['function']['arguments']
                 try:
                     if isinstance(args, str):

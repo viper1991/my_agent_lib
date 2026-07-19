@@ -14,6 +14,25 @@ logger = logging.getLogger(__name__)
 _CONTENT_PREVIEW_LEN = 150
 
 
+def _summarize_tool_defs(tool_defs: list[dict]) -> list[dict]:
+    """生成工具定义的简洁摘要（去掉参数 schema 细节）。"""
+    result = []
+    for td in tool_defs:
+        fn = td.get('function', {})
+        params = fn.get('parameters', {})
+        props = params.get('properties', {})
+        required = params.get('required', [])
+        result.append({
+            'name': fn.get('name', ''),
+            'description': fn.get('description', '')[:100],
+            'parameters': {k: {'type': v.get('type', '?'),
+                               'description': v.get('description', '')[:60]}
+                          for k, v in props.items()},
+            'required': required,
+        })
+    return result
+
+
 def _summarize_messages(messages: list[dict]) -> dict:
     """生成 messages 的结构化摘要（用于 console 日志）。"""
     summary = {
@@ -95,6 +114,7 @@ class InteractionLog:
         messages: list[dict],
         response: Any,
         duration_ms: int | None = None,
+        tool_defs: list[dict] | None = None,
     ):
         """写入一条 LLM 交互记录。"""
         if not self._enabled or not self._path:
@@ -107,6 +127,8 @@ class InteractionLog:
             'messages': self._truncate_messages(messages),
             'response': self._format_response(response),
         }
+        if tool_defs:
+            entry['tool_defs'] = _summarize_tool_defs(tool_defs)
         if duration_ms is not None:
             entry['duration_ms'] = duration_ms
 
@@ -149,17 +171,25 @@ class InteractionLog:
         messages: list[dict],
         response: Any,
         duration_ms: int | None = None,
+        tool_defs: list[dict] | None = None,
     ):
         """输出 LLM 交互摘要到 console logger。"""
         msg_summary = _summarize_messages(messages)
         resp_summary = _summarize_response(response)
 
         lines = [
-            f'── LLM Round {round_num} [{interaction_type}] ──',
+            f'── Round {round_num} [{interaction_type}] ──',
+        ]
+
+        if tool_defs:
+            names = [t.get('function', {}).get('name', '?') for t in tool_defs]
+            lines.append(f'  Tools({len(tool_defs)}): {", ".join(names)}')
+
+        lines.append(
             f'  Input:  {msg_summary["total"]} msgs '
             f'({", ".join(f"{k}={v}" for k, v in msg_summary["roles"].items())}), '
-            f'~{msg_summary["estimated_chars"]} chars',
-        ]
+            f'~{msg_summary["estimated_chars"]} chars'
+        )
 
         if duration_ms is not None:
             lines.append(f'  Time:   {duration_ms}ms')

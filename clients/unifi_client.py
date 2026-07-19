@@ -40,6 +40,13 @@ class UniFiClient:
         self._login_failed = False
         self._site_path = f'/api/s/{self._site}'
 
+    @classmethod
+    def from_config(cls, cfg) -> 'UniFiClient':
+        """从配置命名空间创建客户端。"""
+        return cls(url=cfg.url, username=cfg.username, password=cfg.password,
+                   site=getattr(cfg, 'site', 'default'),
+                   verify_ssl=getattr(cfg, 'verify_ssl', False))
+
     # ── 会话管理 ──
 
     def _ensure_logged_in(self):

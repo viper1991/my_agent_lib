@@ -6,11 +6,23 @@ DeepSeek API 完全兼容 OpenAI SDK，仅 base_url 不同。
 import logging
 import os
 import time
+from types import SimpleNamespace
 from typing import Any
 
 from openai import OpenAI
 
 from my_agent_lib.llm.provider import LLMProvider, LLMResponse
+
+
+def _to_dict(obj: Any) -> Any:
+    """递归将 SimpleNamespace 转为 dict，用于 extra_body 参数传递。"""
+    if isinstance(obj, SimpleNamespace):
+        return {k: _to_dict(v) for k, v in vars(obj).items()}
+    if isinstance(obj, dict):
+        return {k: _to_dict(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_dict(i) for i in obj]
+    return obj
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +61,8 @@ class DeepSeekProvider(LLMProvider):
         api_key: str | None = None,
         max_tokens: int = 2000,
         temperature: float = 0.3,
+        reasoning_effort: str | None = None,
+        extra_body: dict | None = None,
     ):
         # 优先级: 参数 > 环境变量 > 报错
         resolved_key = api_key or os.environ.get(api_key_env)
@@ -60,6 +74,8 @@ class DeepSeekProvider(LLMProvider):
         self._model = model
         self._max_tokens = max_tokens
         self._temperature = temperature
+        self._reasoning_effort = reasoning_effort
+        self._extra_body = extra_body
         self._client = OpenAI(api_key=resolved_key, base_url=base_url)
         self._call_count = 0
 
@@ -80,6 +96,11 @@ class DeepSeekProvider(LLMProvider):
             'max_tokens': kwargs.get('max_tokens', self._max_tokens),
             'temperature': kwargs.get('temperature', self._temperature),
         }
+
+        if self._reasoning_effort:
+            params['reasoning_effort'] = self._reasoning_effort
+        if self._extra_body:
+            params['extra_body'] = _to_dict(self._extra_body)
 
         if tools:
             params['tools'] = tools
